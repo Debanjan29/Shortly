@@ -20,13 +20,31 @@ client = MongoClient(MONGO_URI)
 db = client['db']  # database name, 'db'
 store = db['store']  # collection name, 'store'
 
-@app.route("/get/<path:link>",methods=['GET'])
-def get(link):
+@app.route("/save/<path:link>",methods=['GET','POST'])
+def save(link):
     print(link)
     dt=datetime.datetime.now()
-    store.insert_one({"long_url":link,"_id":187,"date":dt})#short_url is the _id 'PK'
+
+    uid=unique()
+    while(store.find_one({"_id":uid}) is not None):
+        uid=unique()
+
+    link=link_prep(link)
+
+    print(link)
+    print(uid)
+    print(dt)
+    store.insert_one({"long_url":link,"_id":uid,"date":dt})#short_url is the _id 'PK'
     return redirect(link)
 
+
+@app.route("/go/<path:code>",methods=["GET"])
+def go(code):
+    real_url=store.find_one({"_id":code})
+    print(real_url)
+    a=real_url['long_url']
+    print(a)
+    return redirect(a)
 
 @app.route("/")
 def hello_world():
@@ -40,14 +58,8 @@ def goto(stringi):
         return redirect(a)
     return "redirect(url_for())"
 
-@app.route("/go/<path:code>")
-def go(code):
 
-    #if "watch?v=" in code and code.startswith("https://"):
-        #id=code.split("watch?v=")[1]
-        #final_url="https://youtube.com/embed/"+id
-        #print("Youtube direct",final_url)
-        #return redirect(final_url)
+def link_prep(code):
 
     if "youtube.com/watch?v=" in code:
         # Extract the video ID from the URL
@@ -55,26 +67,26 @@ def go(code):
         # Construct the URL for the embedded video
         youtube_embed_url = f"https://www.youtube.com/embed/{video_id}"
         print("YouTube direct:", youtube_embed_url)
+        return youtube_embed_url
         return redirect(youtube_embed_url)
 
     elif code.startswith("https://") or code.startswith("http://"):
         # If it does, directly redirect to the full URL
 
         print("Direct Redirect:", code)
+        return code
         return redirect(code)
     
     # If it doesn't have https://
     full_url = "https://" + code
     print("Modified URL:", full_url)
+    return full_url
     return redirect(full_url)
-    return redirect("https://"+a+".com")
-    if code=="gfr":
-        return redirect()
-    return "hi"+"  "+code
+
 
 
 def unique():
-    id=uuid.uuid4[4]
+    id=str(uuid.uuid4())[:4]
     return id
 
 app.run(debug=True)

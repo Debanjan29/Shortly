@@ -1,5 +1,5 @@
 from flask import Flask,redirect,render_template,url_for
-
+from flask_cors import CORS
 from flask_pymongo import PyMongo
 from flask_pymongo import MongoClient
 
@@ -10,6 +10,7 @@ import uuid
 app = Flask(__name__)
 app.config["MONGO_URI"] = "mongodb://localhost:27017/myDatabase"
 mongo = PyMongo(app)
+CORS(app)
 
 MONGO_URI = "mongodb://localhost:27017/mydatabase"
 
@@ -20,7 +21,7 @@ client = MongoClient(MONGO_URI)
 db = client['db']  # database name, 'db'
 store = db['store']  # collection name, 'store'
 
-@app.route("/save/<path:link>",methods=['GET','POST'])
+@app.route("/save/<path:link>",methods=['GET','POST', 'OPTIONS'])
 def save(link):
     print(link)
     dt=datetime.datetime.now()
@@ -35,7 +36,7 @@ def save(link):
     print(uid)
     print(dt)
     store.insert_one({"long_url":link,"_id":uid,"date":dt})#short_url is the _id 'PK'
-    return redirect(link)
+    return {'short_url':uid}
 
 
 @app.route("/go/<path:code>",methods=["GET"])
@@ -50,13 +51,6 @@ def go(code):
 def hello_world():
     store.insert_one({"a":1})
     return "Hello World"
-
-@app.route("/<stringi>")
-def goto(stringi):
-    if stringi=='abc':
-        a="https://www.w3schools.com"
-        return redirect(a)
-    return "redirect(url_for())"
 
 
 def link_prep(code):
